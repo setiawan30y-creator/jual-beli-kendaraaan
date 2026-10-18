@@ -55,6 +55,11 @@ class Tenant extends Model
         return $this->hasMany(Lead::class);
     }
 
+    public function parties(): HasMany
+    {
+        return $this->hasMany(Party::class);
+    }
+
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);

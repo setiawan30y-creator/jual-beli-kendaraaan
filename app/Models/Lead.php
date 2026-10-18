@@ -32,6 +32,11 @@ class Lead extends Model
         return $this->belongsTo(User::class, 'buyer_user_id');
     }
 
+    public function party(): BelongsTo
+    {
+        return $this->belongsTo(Party::class);
+    }
+
     public function activities(): HasMany
     {
         return $this->hasMany(LeadActivity::class)->latest('occurred_at');

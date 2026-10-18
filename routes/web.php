@@ -115,6 +115,18 @@ Route::middleware('auth')->prefix('dasbor')->name('dealer.')->group(function () 
         Route::get('/leads/{lead}', [Dealer\LeadController::class, 'show'])->name('leads.show');
         Route::patch('/leads/{lead}', [Dealer\LeadController::class, 'update'])->name('leads.update');
 
+        Route::get('/pihak', [Dealer\PartyController::class, 'index'])->name('parties.index');
+        Route::get('/pihak/baru', [Dealer\PartyController::class, 'create'])->name('parties.create');
+        Route::post('/pihak', [Dealer\PartyController::class, 'store'])->name('parties.store');
+        Route::get('/pihak/{party}', [Dealer\PartyController::class, 'show'])->name('parties.show');
+        Route::get('/pihak/{party}/ubah', [Dealer\PartyController::class, 'edit'])->name('parties.edit');
+        Route::put('/pihak/{party}', [Dealer\PartyController::class, 'update'])->name('parties.update');
+        Route::post('/pihak/{party}/dokumen', [Dealer\PartyController::class, 'uploadDocument'])->name('parties.documents.store');
+        Route::post('/pihak/{party}/verifikasi', [Dealer\PartyController::class, 'verify'])->name('parties.verify');
+        Route::get('/dokumen-nasabah/{document}', [Dealer\PartyController::class, 'showDocument'])->name('parties.documents.show');
+        Route::delete('/dokumen-nasabah/{document}', [Dealer\PartyController::class, 'deleteDocument'])->name('parties.documents.destroy');
+        Route::post('/leads/{lead}/jadikan-nasabah', [Dealer\PartyController::class, 'fromLead'])->name('leads.to-party');
+
         Route::get('/booking', [Dealer\BookingController::class, 'index'])->name('bookings.index');
         Route::patch('/booking/{booking}', [Dealer\BookingController::class, 'update'])->name('bookings.update');
 

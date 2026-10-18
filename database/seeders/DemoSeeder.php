@@ -79,6 +79,27 @@ class DemoSeeder extends Seeder
         $lead->save();
         $lead->activities()->create(['activity_type' => 'dibuat', 'notes' => 'Lead masuk dari form']);
         $buyer->favorites()->attach($first->id);
+
+        // Contoh nasabah & pemasok (nama generik)
+        $mk = function (array $attrs, ?string $idNumber, string $status) use ($dealerA, $owner) {
+            $p = new \App\Models\Party($attrs);
+            $p->tenant_id = $dealerA->id;
+            $p->created_by = $owner->id;
+            $p->setIdNumber($idNumber);
+            $p->identity_status = $status;
+            $p->save();
+
+            return $p;
+        };
+        $nasabah = $mk(['type' => 'perorangan', 'roles' => ['customer'], 'name' => 'Nasabah Demo Satu', 'id_type' => 'ktp',
+            'phone' => $buyer->phone, 'address' => 'Jl. Contoh No. 10', 'city_id' => $dealerA->city_id], '3174000000000001', 'menunggu_verifikasi');
+        $lead->party_id = $nasabah->id;
+        $lead->save();
+        $mk(['type' => 'perorangan', 'roles' => ['customer', 'vehicle_source'], 'name' => 'Nasabah Demo Dua', 'phone' => '081200000099',
+            'city_id' => $dealerA->city_id, 'notes' => 'Pernah menjual unit ke dealer.'], null, 'belum_lengkap');
+        $mk(['type' => 'perusahaan', 'roles' => ['auction_house', 'vehicle_source'], 'name' => 'Balai Lelang Contoh', 'id_type' => 'nib',
+            'pic_name' => 'Petugas Lelang', 'pic_phone' => '0215550000', 'city_id' => $dealerA->city_id], '1234567890123', 'terverifikasi');
+        $mk(['type' => 'perusahaan', 'roles' => ['supplier'], 'name' => 'Toko Sparepart Contoh', 'phone' => '0215550001', 'city_id' => $dealerA->city_id], null, 'belum_lengkap');
     }
 
     protected function user(string $name, string $email, string $pw, string $role, ?string $phone = null): User

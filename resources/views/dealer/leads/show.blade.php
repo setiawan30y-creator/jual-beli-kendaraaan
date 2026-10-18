@@ -15,7 +15,13 @@
             </dl>
             @if ($lead->message)<p class="mt-2 mb-0" style="white-space:pre-line">“{{ $lead->message }}”</p>@endif
             @php $wa = preg_replace('/\D/', '', $lead->buyer_phone); $wa = str_starts_with($wa, '0') ? '62'.substr($wa, 1) : $wa; @endphp
-            <div class="row mt-2"><a class="btn btn-success btn-sm" href="https://wa.me/{{ $wa }}" target="_blank" rel="noopener"><x-icon name="phone" class="icon icon-sm" />WhatsApp</a><a class="btn btn-outline btn-sm" href="tel:{{ $lead->buyer_phone }}">Telepon</a></div>
+            <div class="row mt-2">
+                @if ($lead->party_id)
+                    <a class="btn btn-outline btn-sm" href="{{ route('dealer.parties.show', $lead->party_id) }}"><x-icon name="user" class="icon icon-sm" />Lihat data nasabah</a>
+                @elseif (app(\App\Support\TenantContext::class)->can('parties.manage'))
+                    <form method="post" action="{{ route('dealer.leads.to-party', $lead) }}">@csrf<button class="btn btn-primary btn-sm"><x-icon name="add" class="icon icon-sm" />Jadikan nasabah</button></form>
+                @endif
+                <a class="btn btn-success btn-sm" href="https://wa.me/{{ $wa }}" target="_blank" rel="noopener"><x-icon name="phone" class="icon icon-sm" />WhatsApp</a><a class="btn btn-outline btn-sm" href="tel:{{ $lead->buyer_phone }}">Telepon</a></div>
         </div>
         <div class="card card-body">
             <h2 class="card-title">Aktivitas</h2>

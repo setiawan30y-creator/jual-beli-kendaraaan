@@ -95,8 +95,14 @@
         box.innerHTML = `<span class="error-text">Ukuran berkas melebihi ${Math.round(maxKb / 1024)} MB.</span>`;
         input.value = ''; return;
       }
+      const allowPdf = input.dataset.allowPdf === '1';
+      if (allowPdf && file.type === 'application/pdf') {
+        const cap = document.createElement('div');
+        cap.className = 'small muted'; cap.textContent = `PDF: ${file.name} · ${(file.size / 1024).toFixed(0)} KB — belum tersimpan`;
+        box.append(cap); return;
+      }
       if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
-        box.innerHTML = '<span class="error-text">Format harus JPG, PNG, atau WebP.</span>';
+        box.innerHTML = `<span class="error-text">Format harus JPG, PNG, atau WebP${allowPdf ? ', atau PDF' : ''}.</span>`;
         input.value = ''; return;
       }
       const img = document.createElement('img');

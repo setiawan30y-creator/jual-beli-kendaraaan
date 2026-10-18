@@ -25,6 +25,8 @@ return [
         'max_kb' => 5120, // 5 MB per gambar
         'mimes' => ['jpg', 'jpeg', 'png', 'webp'],
         'per_category' => 3,
+        // Dokumen nasabah: gambar atau PDF
+        'document_mimes' => ['jpg', 'jpeg', 'png', 'webp', 'pdf'],
     ],
 
     // Default tema platform (Blueprint §17.4.1). Tenant dapat menimpa sesuai izin.
@@ -47,12 +49,12 @@ return [
     */
     'tenant_permissions' => [
         'tenant_owner' => ['*'],
-        'tenant_admin' => ['dashboard.view', 'units.view', 'units.manage', 'units.costs', 'media.private', 'media.verify', 'listings.manage', 'leads.view_all', 'leads.manage', 'bookings.manage', 'members.manage', 'settings.manage', 'reports.view'],
-        'branch_manager' => ['dashboard.view', 'units.view', 'units.manage', 'units.costs', 'media.private', 'listings.manage', 'leads.view_all', 'leads.manage', 'bookings.manage', 'reports.view'],
-        'sales' => ['dashboard.view', 'units.view', 'leads.manage', 'bookings.manage'],
-        'inventory_staff' => ['dashboard.view', 'units.view', 'units.manage', 'media.private', 'listings.manage'],
-        'finance_staff' => ['dashboard.view', 'units.view', 'units.costs', 'reports.view', 'billing.view'],
-        'inspector' => ['dashboard.view', 'units.view', 'media.private', 'media.verify'],
+        'tenant_admin' => ['dashboard.view', 'parties.view', 'parties.manage', 'parties.identity', 'parties.verify', 'units.view', 'units.manage', 'units.costs', 'media.private', 'media.verify', 'listings.manage', 'leads.view_all', 'leads.manage', 'bookings.manage', 'members.manage', 'settings.manage', 'reports.view'],
+        'branch_manager' => ['dashboard.view', 'parties.view', 'parties.manage', 'parties.identity', 'parties.verify', 'units.view', 'units.manage', 'units.costs', 'media.private', 'listings.manage', 'leads.view_all', 'leads.manage', 'bookings.manage', 'reports.view'],
+        'sales' => ['dashboard.view', 'parties.view', 'parties.manage', 'units.view', 'leads.manage', 'bookings.manage'],
+        'inventory_staff' => ['dashboard.view', 'parties.view', 'units.view', 'units.manage', 'media.private', 'listings.manage'],
+        'finance_staff' => ['dashboard.view', 'parties.view', 'parties.identity', 'units.view', 'units.costs', 'reports.view', 'billing.view'],
+        'inspector' => ['dashboard.view', 'parties.view', 'parties.identity', 'parties.verify', 'units.view', 'media.private', 'media.verify'],
         'read_only' => ['dashboard.view', 'units.view'],
     ],
 
