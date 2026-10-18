@@ -22,7 +22,7 @@ Marketplace motor & mobil baru/seken yang terintegrasi dengan dashboard dealer m
 | **PWA** | Manifest, ikon (termasuk maskable), service worker (cache aset + fallback offline; **tidak pernah** meng-cache akun/dealer/admin/API/dokumen), tombol **Instal Aplikasi** di header, footer & kartu beranda + panduan manual untuk browser tanpa prompt |
 | **Keamanan** | Tenant isolation (404 untuk ID tenant lain), RBAC per peran tenant, nomor rangka/mesin terenkripsi + hash, rate limit login/lead/laporan/API, audit log, validasi MIME & ukuran di server |
 
-**41 feature test / 285 assertion lulus**, termasuk uji akses silang tenant, dokumen privat, moderasi, kuota paket, transisi status, reversal biaya, dan envelope API.
+**42 feature test / 299 assertion lulus**, termasuk uji akses silang tenant, dokumen privat, moderasi, kuota paket, transisi status, reversal biaya, dan envelope API.
 
 ### Ditunda (sesuai Blueprint §9 "Ditunda setelah MVP")
 Payment gateway & invoice otomatis, chat internal (MVP memakai WhatsApp deep link + pencatatan consent), modul leasing/trade-in/konsinyasi lengkap (struktur unit titipan & HPP sudah siap), OCR KTP, custom domain white-label, web push notification, aplikasi Flutter.

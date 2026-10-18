@@ -56,6 +56,7 @@ class PartyController extends Controller
     public function store(Request $request)
     {
         $this->ctx->authorize('parties.manage');
+        $request->validate(['consent_ack' => ['accepted']], ['consent_ack.accepted' => 'Konfirmasi persetujuan nasabah atas pengumpulan data wajib dicentang.']);
         $data = $this->validated($request);
 
         if ($dupe = $this->findDuplicate($data)) {
@@ -72,11 +73,16 @@ class PartyController extends Controller
             $party->setIdNumber($data['id_number'] ?? null);
             $party->save();
             Audit::log('party.created', $party, null, ['type' => $party->type, 'roles' => $party->roles]);
+            $this->storeFormUploads($request, $party);
 
             return $party;
         });
 
-        return redirect()->route('dealer.parties.show', $party)->with('status', 'Data tersimpan. Lengkapi dokumen identitas di bawah.');
+        $uploaded = $party->documents()->count();
+
+        return redirect()->route('dealer.parties.show', $party)->with('status', $uploaded
+            ? 'Data tersimpan bersama '.$uploaded.' dokumen. Menunggu verifikasi identitas.'
+            : 'Data tersimpan. Lengkapi dokumen identitas (KTP & selfie) di bawah.');
     }
 
     public function show(Party $party)
@@ -127,6 +133,7 @@ class PartyController extends Controller
         }
         $party->save();
         Audit::log('party.updated', $party, $before, $party->only(array_keys($before)));
+        $this->storeFormUploads($request, $party);
 
         return redirect()->route('dealer.parties.show', $party)->with('status', 'Data diperbarui.');
     }
@@ -179,23 +186,46 @@ class PartyController extends Controller
             return back()->withErrors(['file' => 'Batas jumlah berkas untuk jenis dokumen ini sudah tercapai. Hapus berkas lama terlebih dahulu.']);
         }
 
-        $file = $request->file('file');
-        $path = $file->storeAs('tenants/'.$party->tenant_id.'/parties/'.$party->id.'/'.$data['category'],
+        $this->storeDocument($party, $data['category'], $request->file('file'), $request->user()->id);
+
+        return back()->with('status', PartyDocument::CATEGORIES[$data['category']]['label'].' berhasil diunggah.');
+    }
+
+    /** Unggahan langsung dari form tambah/ubah: KTP + selfie (perorangan) atau legalitas (perusahaan). */
+    protected function storeFormUploads(Request $request, Party $party): void
+    {
+        $map = $party->type === 'perusahaan'
+            ? ['doc_legalitas' => 'legalitas', 'doc_selfie' => 'foto_orang']
+            : ['doc_ktp' => $party->id_type === 'sim' ? 'sim' : ($party->id_type === 'paspor' ? 'paspor' : 'ktp'), 'doc_selfie' => 'foto_orang'];
+        foreach ($map as $input => $category) {
+            if (! $request->hasFile($input)) {
+                continue;
+            }
+            if ($party->documents()->where('category', $category)->count() >= config('marketplace.uploads.per_category')) {
+                continue;
+            }
+            $this->storeDocument($party, $category, $request->file($input), $request->user()->id);
+        }
+    }
+
+    protected function storeDocument(Party $party, string $category, \Illuminate\Http\UploadedFile $file, int $userId): PartyDocument
+    {
+        $path = $file->storeAs('tenants/'.$party->tenant_id.'/parties/'.$party->id.'/'.$category,
             Str::uuid().'.'.strtolower($file->guessExtension() ?: 'bin'), 'local');
 
         $doc = $party->documents()->create([
-            'tenant_id' => $party->tenant_id, 'category' => $data['category'], 'disk' => 'local', 'path' => $path,
+            'tenant_id' => $party->tenant_id, 'category' => $category, 'disk' => 'local', 'path' => $path,
             'original_name' => mb_substr($file->getClientOriginalName(), 0, 200), 'mime' => $file->getMimeType(),
-            'size_bytes' => $file->getSize(), 'checksum' => hash_file('sha256', $file->getRealPath()), 'uploaded_by' => $request->user()->id,
+            'size_bytes' => $file->getSize(), 'checksum' => hash_file('sha256', $file->getRealPath()), 'uploaded_by' => $userId,
         ]);
 
-        if (in_array($data['category'], $party->identityCategories(), true) && in_array($party->identity_status, ['belum_lengkap', 'ditolak', 'kedaluwarsa'], true)) {
+        if (in_array($category, $party->identityCategories(), true) && in_array($party->identity_status, ['belum_lengkap', 'ditolak', 'kedaluwarsa'], true)) {
             $party->identity_status = 'menunggu_verifikasi';
             $party->save();
         }
         Audit::log('party.document_uploaded', $doc, null, ['category' => $doc->category]);
 
-        return back()->with('status', PartyDocument::CATEGORIES[$data['category']]['label'].' berhasil diunggah.');
+        return $doc;
     }
 
     public function showDocument(PartyDocument $document)
@@ -309,10 +339,15 @@ class PartyController extends Controller
             'pic_name' => ['nullable', 'string', 'max:150'],
             'pic_phone' => ['nullable', 'string', 'regex:/^[0-9+\-\s]{8,20}$/'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'doc_ktp' => ['nullable', 'file', 'mimes:'.implode(',', config('marketplace.uploads.document_mimes')), 'max:'.config('marketplace.uploads.max_kb')],
+            'doc_selfie' => ['nullable', 'file', 'mimes:'.implode(',', config('marketplace.uploads.mimes')), 'max:'.config('marketplace.uploads.max_kb')],
+            'doc_legalitas' => ['nullable', 'file', 'mimes:'.implode(',', config('marketplace.uploads.document_mimes')), 'max:'.config('marketplace.uploads.max_kb')],
         ], ['id_number.regex' => 'NIK harus 16 digit angka.'], [
+            'doc_ktp' => 'foto KTP/identitas', 'doc_selfie' => 'foto selfie', 'doc_legalitas' => 'dokumen legalitas',
             'name' => 'nama', 'roles' => 'peran', 'id_type' => 'jenis identitas', 'id_number' => 'nomor identitas',
             'birth_date' => 'tanggal lahir', 'pic_name' => 'nama perwakilan',
         ]);
+        $data = Arr::except($data, ['doc_ktp', 'doc_selfie', 'doc_legalitas']);
         $data['roles'] = array_values(array_unique($data['roles']));
         if ($type === 'perusahaan') {
             $data['birth_place'] = null;

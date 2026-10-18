@@ -115,6 +115,50 @@
     });
   });
 
+
+  /* Kamera (selfie/KTP) — hanya di konteks aman (HTTPS/localhost); fallback ke pilih berkas */
+  const camDialog = $('#camera-dialog');
+  if (camDialog && navigator.mediaDevices?.getUserMedia && window.isSecureContext) {
+    const video = $('#camera-video', camDialog);
+    const errBox = $('[data-camera-error]', camDialog);
+    let stream = null; let target = null; let facing = 'user';
+    const stop = () => { stream?.getTracks().forEach((t) => t.stop()); stream = null; };
+    $$('[data-camera-for]').forEach((btn) => {
+      btn.hidden = false;
+      btn.addEventListener('click', async () => {
+        target = document.getElementById(btn.dataset.cameraFor);
+        facing = btn.dataset.facing || 'user';
+        errBox.hidden = true;
+        video.style.transform = facing === 'user' ? 'scaleX(-1)' : '';
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing, width: { ideal: 1280 } }, audio: false });
+          video.srcObject = stream;
+          camDialog.showModal();
+        } catch (e) {
+          window.alert('Kamera tidak dapat dibuka. Izinkan akses kamera atau pilih berkas foto.');
+        }
+      });
+    });
+    $('[data-camera-cancel]', camDialog).addEventListener('click', () => { stop(); camDialog.close(); });
+    camDialog.addEventListener('close', stop);
+    $('[data-camera-shoot]', camDialog).addEventListener('click', () => {
+      if (!video.videoWidth || !target) return;
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (facing === 'user') { ctx.translate(canvas.width, 0); ctx.scale(-1, 1); }
+      ctx.drawImage(video, 0, 0);
+      canvas.toBlob((blob) => {
+        if (!blob) { errBox.textContent = 'Gagal mengambil foto, coba lagi.'; errBox.hidden = false; return; }
+        const file = new File([blob], `${target.name}-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        const dt = new DataTransfer(); dt.items.add(file);
+        target.files = dt.files;
+        target.dispatchEvent(new Event('change', { bubbles: true }));
+        stop(); camDialog.close();
+      }, 'image/jpeg', 0.9);
+    });
+  }
+
   /* Simulasi kredit (estimasi) --------------------------------------- */
   const credit = $('[data-credit]');
   if (credit) {

@@ -34,7 +34,7 @@ class PartyTest extends TestCase
     {
         $owner = $this->user('dealer@example.com');
         $this->actingAs($owner)->post(route('dealer.parties.store'), [
-            'type' => 'perorangan', 'roles' => ['customer'], 'name' => 'Nasabah Baru', 'id_type' => 'ktp',
+            'type' => 'perorangan', 'consent_ack' => 1, 'roles' => ['customer'], 'name' => 'Nasabah Baru', 'id_type' => 'ktp',
             'id_number' => '3201000000000002', 'phone' => '081311112222',
         ])->assertRedirect();
 
@@ -49,20 +49,56 @@ class PartyTest extends TestCase
             ->assertOk()->assertDontSee('3201000000000002')->assertSee('0002');
     }
 
+    public function test_create_with_ktp_and_selfie_in_one_form(): void
+    {
+        $owner = $this->user('dealer@example.com');
+        $this->actingAs($owner)->get(route('dealer.parties.create'))->assertOk()
+            ->assertSee('name="doc_ktp"', false)->assertSee('name="doc_selfie"', false)->assertSee('multipart/form-data', false);
+
+        $this->actingAs($owner)->post(route('dealer.parties.store'), [
+            'type' => 'perorangan', 'roles' => ['customer'], 'name' => 'Tanpa Persetujuan',
+        ])->assertSessionHasErrors('consent_ack');
+
+        $this->actingAs($owner)->post(route('dealer.parties.store'), [
+            'type' => 'perorangan', 'consent_ack' => 1, 'roles' => ['customer'], 'name' => 'Nasabah Lengkap', 'id_type' => 'ktp',
+            'id_number' => '3201000000000009', 'phone' => '081300000009',
+            'doc_ktp' => UploadedFile::fake()->image('ktp.jpg', 860, 540),
+            'doc_selfie' => UploadedFile::fake()->image('selfie.jpg', 720, 960),
+        ])->assertRedirect();
+
+        $p = Party::where('name', 'Nasabah Lengkap')->firstOrFail();
+        $this->assertEqualsCanonicalizing(['ktp', 'foto_orang'], $p->documents()->pluck('category')->all());
+        $this->assertTrue($p->documents->every(fn ($d) => $d->disk === 'local'));
+        $this->assertSame('menunggu_verifikasi', $p->identity_status);
+
+        // Selfie hanya gambar; PDF ditolak
+        $this->actingAs($owner)->post(route('dealer.parties.store'), [
+            'type' => 'perorangan', 'consent_ack' => 1, 'roles' => ['customer'], 'name' => 'Selfie PDF',
+            'doc_selfie' => UploadedFile::fake()->create('s.pdf', 50, 'application/pdf'),
+        ])->assertSessionHasErrors('doc_selfie');
+
+        // Upload tambahan lewat form ubah
+        $this->actingAs($owner)->put(route('dealer.parties.update', $p), [
+            'type' => 'perorangan', 'roles' => ['customer'], 'name' => 'Nasabah Lengkap',
+            'doc_selfie' => UploadedFile::fake()->image('selfie2.jpg'),
+        ])->assertRedirect();
+        $this->assertSame(2, $p->documents()->where('category', 'foto_orang')->count());
+    }
+
     public function test_ktp_number_must_be_16_digits_and_duplicates_are_flagged(): void
     {
         $owner = $this->user('dealer@example.com');
         $this->actingAs($owner)->post(route('dealer.parties.store'), [
-            'type' => 'perorangan', 'roles' => ['customer'], 'name' => 'X', 'id_type' => 'ktp', 'id_number' => '123',
+            'type' => 'perorangan', 'consent_ack' => 1, 'roles' => ['customer'], 'name' => 'X', 'id_type' => 'ktp', 'id_number' => '123',
         ])->assertSessionHasErrors('id_number');
 
         $this->actingAs($owner)->post(route('dealer.parties.store'), [
-            'type' => 'perorangan', 'roles' => ['customer'], 'name' => 'Duplikat', 'id_type' => 'ktp', 'id_number' => '3174 0000 0000 0001',
+            'type' => 'perorangan', 'consent_ack' => 1, 'roles' => ['customer'], 'name' => 'Duplikat', 'id_type' => 'ktp', 'id_number' => '3174 0000 0000 0001',
         ])->assertSessionHasErrors('name')->assertSessionHas('duplicate');
         $this->assertFalse(Party::where('name', 'Duplikat')->exists());
 
         $this->actingAs($owner)->post(route('dealer.parties.store'), [
-            'type' => 'perorangan', 'roles' => ['customer'], 'name' => 'Duplikat', 'id_type' => 'ktp', 'id_number' => '3174000000000001', 'confirm_duplicate' => 1,
+            'type' => 'perorangan', 'consent_ack' => 1, 'roles' => ['customer'], 'name' => 'Duplikat', 'id_type' => 'ktp', 'id_number' => '3174000000000001', 'confirm_duplicate' => 1,
         ])->assertRedirect();
         $this->assertTrue(Party::where('name', 'Duplikat')->exists());
     }

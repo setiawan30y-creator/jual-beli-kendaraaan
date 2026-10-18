@@ -6,7 +6,7 @@
 @if (session('duplicate'))
     <div class="notice notice-warning mb-2"><x-icon name="warning" /><div>Kemungkinan data ganda: <a href="{{ route('dealer.parties.show', session('duplicate')['id']) }}" target="_blank"><strong>{{ session('duplicate')['name'] }}</strong></a> {{ session('duplicate')['phone'] ? '('.session('duplicate')['phone'].')' : '' }}. Gunakan data yang sudah ada agar riwayat transaksi tidak terpecah.</div></div>
 @endif
-<form method="post" action="{{ $party->exists ? route('dealer.parties.update', $party) : route('dealer.parties.store') }}" class="stack" style="max-width:920px" data-party-form>
+<form method="post" action="{{ $party->exists ? route('dealer.parties.update', $party) : route('dealer.parties.store') }}" class="stack" style="max-width:920px" enctype="multipart/form-data" data-party-form>
     @csrf @if ($party->exists) @method('put') @endif
     <fieldset class="fieldset"><legend>Jenis & peran</legend>
         <div class="stack">
@@ -49,13 +49,56 @@
             <x-field name="notes" label="Catatan internal" type="textarea" :value="$party->notes" class="span-2" />
         </div>
     </fieldset>
+    @php
+        $existing = $party->exists ? $party->documents()->get()->groupBy('category') : collect();
+        $slots = [
+            ['input' => 'doc_ktp', 'for' => 'perorangan', 'label' => 'Foto KTP / identitas', 'hint' => 'Foto KTP utuh, tidak terpotong, tidak silau, dan terbaca jelas. Bila memilih SIM/paspor di atas, unggah dokumen tersebut.', 'accept' => 'image/jpeg,image/png,image/webp,application/pdf', 'pdf' => true, 'facing' => 'environment', 'cats' => ['ktp', 'sim', 'paspor']],
+            ['input' => 'doc_legalitas', 'for' => 'perusahaan', 'label' => 'Dokumen legalitas', 'hint' => 'NIB, akta, atau NPWP badan usaha.', 'accept' => 'image/jpeg,image/png,image/webp,application/pdf', 'pdf' => true, 'facing' => 'environment', 'cats' => ['legalitas']],
+            ['input' => 'doc_selfie', 'for' => 'semua', 'label' => 'Selfie nasabah', 'hint' => 'Wajah terlihat jelas, disarankan sambil memegang KTP di samping wajah. Untuk perusahaan: selfie perwakilan.', 'accept' => 'image/jpeg,image/png,image/webp', 'pdf' => false, 'facing' => 'user', 'cats' => ['foto_orang']],
+        ];
+    @endphp
+    <fieldset class="fieldset"><legend>Dokumen identitas <span class="badge badge-warning"><x-icon name="lock" />Privat</span></legend>
+        <p class="small muted mt-0">Opsional saat ini, tetapi wajib sebelum identitas dapat diverifikasi. Berkas disimpan privat dan hanya dapat dibuka petugas berwenang; setiap akses tercatat.</p>
+        <div class="uploader" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
+            @foreach ($slots as $slot)
+                @php $count = $existing->only($slot['cats'])->flatten()->count(); @endphp
+                <div class="slot is-private" @if($slot['for'] !== 'semua') data-for-type="{{ $slot['for'] }}" @endif>
+                    <div class="slot-head">
+                        <span><strong>{{ $slot['label'] }}</strong><span class="small muted">{{ $slot['hint'] }}</span></span>
+                        @if ($count)<span class="badge badge-success"><x-icon name="check" />{{ $count }} tersimpan</span>@endif
+                    </div>
+                    <input class="file-input" type="file" id="{{ $slot['input'] }}" name="{{ $slot['input'] }}" accept="{{ $slot['accept'] }}"
+                        data-preview="pv-{{ $slot['input'] }}" data-max-kb="{{ config('marketplace.uploads.max_kb') }}" @if($slot['pdf']) data-allow-pdf="1" @endif aria-label="Pilih {{ $slot['label'] }}">
+                    <button type="button" class="btn btn-outline btn-sm" data-camera-for="{{ $slot['input'] }}" data-facing="{{ $slot['facing'] }}" hidden>
+                        <x-icon name="camera" class="icon icon-sm" />{{ $slot['facing'] === 'user' ? 'Ambil selfie dengan kamera' : 'Foto dengan kamera' }}
+                    </button>
+                    <div class="slot-preview" id="pv-{{ $slot['input'] }}" aria-live="polite"></div>
+                    @error($slot['input'])<span class="error-text">{{ $message }}</span>@enderror
+                </div>
+            @endforeach
+        </div>
+        @if (session('duplicate') || $errors->any())
+            <p class="small" style="color:var(--warning)">Demi keamanan, berkas yang sudah dipilih perlu dipilih ulang setelah ada pesan kesalahan.</p>
+        @endif
+    </fieldset>
     @if (session('duplicate'))
         <label class="check"><input type="checkbox" name="confirm_duplicate" value="1"> <span>Saya sudah memeriksa dan tetap ingin menyimpan sebagai data baru.</span></label>
     @endif
-    <p class="small muted mb-0">Dokumen KTP/SIM/paspor dan foto nasabah diunggah di halaman detail setelah data tersimpan. Pastikan nasabah sudah diberi tahu dan menyetujui penggunaan datanya.</p>
-    <div class="row"><button class="btn btn-primary">{{ $party->exists ? 'Simpan perubahan' : 'Simpan' }}</button>
+    <label class="check"><input type="checkbox" name="consent_ack" value="1" required> <span>Nasabah/pihak terkait sudah diberi tahu dan menyetujui pengumpulan data identitas & foto untuk keperluan verifikasi dan transaksi.</span></label>
+    <div class="row"><button class="btn btn-primary">{{ $party->exists ? 'Simpan perubahan' : 'Simpan nasabah' }}</button>
         <a class="btn btn-outline" href="{{ $party->exists ? route('dealer.parties.show', $party) : route('dealer.parties.index') }}">Batal</a></div>
 </form>
+<dialog id="camera-dialog" aria-labelledby="camera-title">
+    <div class="card-body stack">
+        <h3 id="camera-title" class="mb-0">Ambil foto</h3>
+        <video id="camera-video" autoplay playsinline muted style="width:100%;max-height:60vh;border-radius:12px;background:#000"></video>
+        <p class="small muted mb-0" data-camera-error hidden></p>
+        <div class="row" style="justify-content:flex-end">
+            <button type="button" class="btn btn-outline" data-camera-cancel>Batal</button>
+            <button type="button" class="btn btn-primary" data-camera-shoot><x-icon name="camera" />Ambil foto</button>
+        </div>
+    </div>
+</dialog>
 @endsection
 @push('scripts')
 <script>

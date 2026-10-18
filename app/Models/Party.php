@@ -37,6 +37,8 @@ class Party extends Model
 
     protected $hidden = ['id_number_encrypted', 'id_number_hash'];
 
+    protected $attributes = ['identity_status' => 'belum_lengkap', 'type' => 'perorangan'];
+
     protected $casts = ['roles' => 'array', 'birth_date' => 'date', 'identity_verified_at' => 'datetime'];
 
     public function city(): BelongsTo
