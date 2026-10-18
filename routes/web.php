@@ -103,6 +103,13 @@ Route::middleware('auth')->prefix('dasbor')->name('dealer.')->group(function () 
         Route::post('/unit/{unit}/biaya', [Dealer\UnitController::class, 'addCost'])->name('units.costs.store');
         Route::post('/unit/{unit}/biaya/{cost}/reversal', [Dealer\UnitController::class, 'reverseCost'])->name('units.costs.reverse');
         Route::post('/unit/{unit}/iklan', [Dealer\ListingController::class, 'store'])->name('listings.store');
+        Route::post('/unit/{unit}/sparepart', [Dealer\UnitController::class, 'useSparePart'])->name('units.parts.use');
+        Route::get('/sparepart', [Dealer\SparePartController::class, 'index'])->name('parts.index');
+        Route::post('/sparepart', [Dealer\SparePartController::class, 'store'])->name('parts.store');
+        Route::get('/sparepart/{part}', [Dealer\SparePartController::class, 'show'])->name('parts.show');
+        Route::put('/sparepart/{part}', [Dealer\SparePartController::class, 'update'])->name('parts.update');
+        Route::post('/sparepart/{part}/terima', [Dealer\SparePartController::class, 'receive'])->name('parts.receive');
+        Route::post('/sparepart/{part}/opname', [Dealer\SparePartController::class, 'adjust'])->name('parts.adjust');
         Route::post('/media/{media}/verifikasi', [Dealer\UnitController::class, 'verifyMedia'])->name('media.verify');
 
         Route::get('/iklan', [Dealer\ListingController::class, 'index'])->name('listings.index');

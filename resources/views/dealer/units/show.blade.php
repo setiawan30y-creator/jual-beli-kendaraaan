@@ -30,7 +30,8 @@
                     <tr>
                         <td data-label="Tanggal">{{ $c->entry_date->format('d/m/Y') }}</td>
                         <td data-label="Kategori">{{ \App\Models\VehicleCostEntry::CATEGORIES[$c->category] ?? $c->category }}</td>
-                        <td data-label="Keterangan">{{ $c->description }}@if($c->reference_no)<br><span class="small muted">Ref: {{ $c->reference_no }}</span>@endif</td>
+                        <td data-label="Keterangan">{{ $c->description }}@if($c->reference_no)<br><span class="small muted">Ref: {{ $c->reference_no }}</span>@endif
+                            @if($c->inventory_movement_id)<br><span class="badge badge-info">Dari stok gudang</span>@endif</td>
                         <td data-label="Status"><x-status-badge :status="$c->status" :label="['posted' => 'Diposting', 'estimate' => 'Estimasi', 'reversed' => 'Dibalik'][$c->status]" /></td>
                         <td data-label="Nilai" class="num">{{ $F::rupiah($c->amount) }}</td>
                         <td>@if ($c->status !== 'reversed' && ! $c->reverses_id)
@@ -43,8 +44,28 @@
                     <tr><td colspan="6" class="muted">Belum ada biaya tercatat.</td></tr>
                 @endforelse
                 </tbody></table></div>
-            <details class="mt-2">
-                <summary class="btn btn-outline btn-sm">Catat biaya</summary>
+            <div class="row mt-2" style="align-items:flex-start">
+            <details style="flex:1;min-width:260px">
+                <summary class="btn btn-primary btn-sm"><x-icon name="settings" class="icon icon-sm" />Pakai sparepart dari stok</summary>
+                @if ($parts->isEmpty())
+                    <p class="small muted mt-1">Belum ada sparepart dengan stok tersedia. <a href="{{ route('dealer.parts.index') }}">Kelola stok sparepart</a></p>
+                @else
+                    <form method="post" action="{{ route('dealer.units.parts.use', $unit) }}" class="form-grid cols-2 mt-2">
+                        @csrf
+                        <input type="hidden" name="idempotency_key" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
+                        <x-field name="spare_part_id" label="Sparepart" type="select" required class="span-2">
+                            <option value="">Pilih sparepart</option>
+                            @foreach ($parts as $p)<option value="{{ $p->id }}">{{ $p->name }} ({{ $p->sku }}) — stok {{ \App\Models\SparePart::qty($p->qty_on_hand) }} {{ $p->uom }} @ {{ \App\Support\Format::rupiah($p->avg_cost) }}</option>@endforeach
+                        </x-field>
+                        <x-field name="qty" label="Jumlah" type="number" min="0.01" step="0.01" value="1" required />
+                        <x-field name="note" label="Keterangan (opsional)" placeholder="Contoh: ganti kampas rem depan" />
+                        <div class="span-2"><button class="btn btn-primary btn-sm">Pakai & posting ke HPP</button>
+                            <span class="small muted">Nilai = jumlah × harga rata-rata stok.</span></div>
+                    </form>
+                @endif
+            </details>
+            <details style="flex:1;min-width:260px">
+                <summary class="btn btn-outline btn-sm">Catat biaya lain</summary>
                 <form method="post" action="{{ route('dealer.units.costs.store', $unit) }}" class="form-grid cols-2 mt-2">
                     @csrf
                     <input type="hidden" name="idempotency_key" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
@@ -54,9 +75,11 @@
                     <x-field name="amount" label="Nilai (Rp)" type="number" min="1" step="1000" required />
                     <x-field name="entry_date" label="Tanggal" type="date" :value="now()->toDateString()" required />
                     <x-field name="reference_no" label="No. referensi (opsional)" class="span-2" />
-                    <div class="span-2"><button class="btn btn-primary">Simpan biaya</button></div>
+                    <div class="span-2"><button class="btn btn-primary">Simpan biaya</button>
+                        <p class="small muted mb-0 mt-1">Untuk sparepart yang ada di gudang, gunakan "Pakai sparepart dari stok" agar stok ikut berkurang. Kategori Sparepart di sini untuk pembelian langsung di luar stok.</p></div>
                 </form>
             </details>
+            </div>
         </div>
         @endif
 

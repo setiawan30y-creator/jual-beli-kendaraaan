@@ -99,7 +99,25 @@ class DemoSeeder extends Seeder
             'city_id' => $dealerA->city_id, 'notes' => 'Pernah menjual unit ke dealer.'], null, 'belum_lengkap');
         $mk(['type' => 'perusahaan', 'roles' => ['auction_house', 'vehicle_source'], 'name' => 'Balai Lelang Contoh', 'id_type' => 'nib',
             'pic_name' => 'Petugas Lelang', 'pic_phone' => '0215550000', 'city_id' => $dealerA->city_id], '1234567890123', 'terverifikasi');
-        $mk(['type' => 'perusahaan', 'roles' => ['supplier'], 'name' => 'Toko Sparepart Contoh', 'phone' => '0215550001', 'city_id' => $dealerA->city_id], null, 'belum_lengkap');
+        $toko = $mk(['type' => 'perusahaan', 'roles' => ['supplier'], 'name' => 'Toko Sparepart Contoh', 'phone' => '0215550001', 'city_id' => $dealerA->city_id], null, 'belum_lengkap');
+
+        // Contoh stok sparepart + pemakaian untuk satu unit
+        $inv = app(\App\Services\InventoryService::class);
+        $partsData = [
+            ['OLI-MTR-08', 'Oli mesin motor 0.8L', 'oli', 'botol', 6, 24, 52000],
+            ['KMP-REM-DPN', 'Kampas rem depan (matic)', 'rem', 'set', 4, 10, 65000],
+            ['BAN-90-90-14', 'Ban 90/90-14 tubeless', 'ban', 'pcs', 2, 6, 285000],
+            ['AKI-5AH', 'Aki kering 5Ah', 'kelistrikan', 'pcs', 2, 3, 245000],
+            ['BUSI-STD', 'Busi standar', 'mesin', 'pcs', 5, 4, 28000],
+        ];
+        foreach ($partsData as [$sku, $name, $cat, $uom, $min, $qty, $cost]) {
+            $part = new \App\Models\SparePart(['sku' => $sku, 'name' => $name, 'category' => $cat, 'uom' => $uom, 'min_stock' => $min, 'location' => 'Rak A', 'status' => 'active']);
+            $part->tenant_id = $dealerA->id;
+            $part->save();
+            $inv->receive($part, $qty, $cost, $toko, 'NOTA-DEMO-001', 'Stok awal');
+        }
+        $firstUnit = VehicleUnit::where('tenant_id', $dealerA->id)->orderBy('id')->first();
+        $inv->useForUnit(\App\Models\SparePart::where('sku', 'OLI-MTR-08')->first(), $firstUnit, 1, 'Ganti oli');
     }
 
     protected function user(string $name, string $email, string $pw, string $role, ?string $phone = null): User

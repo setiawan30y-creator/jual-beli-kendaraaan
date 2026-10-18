@@ -5,6 +5,7 @@
         ['dealer.dashboard', 'Ringkasan', 'dashboard', 'dashboard.view'],
         ['group' => 'Operasional'],
         ['dealer.units.index', 'Inventaris unit', 'moto', 'units.view', 'dealer.units.*'],
+        ['dealer.parts.index', 'Stok sparepart', 'settings', 'parts.view', 'dealer.parts.*'],
         ['dealer.listings.index', 'Iklan', 'tag', 'units.view', 'dealer.listings.*'],
         ['dealer.leads.index', 'Leads / CRM', 'chat', 'leads.manage', 'dealer.leads.*'],
         ['dealer.parties.index', 'Nasabah & pemasok', 'people', 'parties.view', 'dealer.parties.*'],

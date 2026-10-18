@@ -27,7 +27,7 @@ class AppServiceProvider extends ServiceProvider
             'cost' => \App\Models\VehicleCostEntry::class, 'lead' => \App\Models\Lead::class,
             'booking' => \App\Models\Booking::class, 'membership' => \App\Models\TenantMembership::class,
             'report' => \App\Models\ListingReport::class, 'plan' => \App\Models\Plan::class, 'user' => \App\Models\User::class,
-            'party' => \App\Models\Party::class, 'document' => \App\Models\PartyDocument::class,
+            'party' => \App\Models\Party::class, 'document' => \App\Models\PartyDocument::class, 'part' => \App\Models\SparePart::class,
         ] as $param => $class) {
             Route::model($param, $class);
         }

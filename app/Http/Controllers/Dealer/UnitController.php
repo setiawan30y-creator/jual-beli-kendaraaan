@@ -72,12 +72,16 @@ class UnitController extends Controller
         $this->ctx->ensureOwns($unit);
         $this->ctx->authorize('units.view');
         $unit->load(['vehicleModel.brand', 'variant', 'branch', 'media', 'costs.creator', 'listing']);
+        $parts = $this->ctx->can('units.costs')
+            ? \App\Models\SparePart::where('tenant_id', $this->ctx->id())->where('status', 'active')->where('qty_on_hand', '>', 0)->orderBy('name')->get()
+            : collect();
 
         return view('dealer.units.show', [
             'unit' => $unit,
             'checklist' => $media->checklist($unit),
             'summary' => $unit->costSummary(),
             'canCosts' => $this->ctx->can('units.costs'),
+            'parts' => $parts,
             'canManage' => $this->ctx->can('units.manage'),
             'canPrivate' => $this->ctx->can('media.private'),
             'canVerify' => $this->ctx->can('media.verify'),
@@ -195,10 +199,36 @@ class UnitController extends Controller
             }
             $cost->status = 'reversed';
             $cost->save();
+            // Sparepart dari stok → barang kembali ke gudang
+            if ($cost->inventory_movement_id) {
+                app(\App\Services\InventoryService::class)->returnUsage($cost, $data['reason']);
+            }
             Audit::log('cost.reversed', $cost, ['status' => 'posted'], ['status' => 'reversed'], $data['reason']);
         });
 
         return back()->with('status', 'Entri biaya dibalik.');
+    }
+
+    /** Pakai sparepart dari stok untuk unit ini: stok berkurang & nilainya masuk HPP unit. */
+    public function useSparePart(Request $request, VehicleUnit $unit, \App\Services\InventoryService $inv)
+    {
+        $this->ctx->ensureOwns($unit);
+        $this->ctx->authorize('units.costs');
+        $data = $request->validate([
+            'spare_part_id' => ['required', Rule::exists('spare_parts', 'id')->where('tenant_id', $this->ctx->id())->where('status', 'active')],
+            'qty' => ['required', 'numeric', 'min:0.01', 'max:10000'],
+            'note' => ['nullable', 'string', 'max:150'],
+            'idempotency_key' => ['required', 'string', 'max:64'],
+        ], [], ['spare_part_id' => 'sparepart', 'qty' => 'jumlah']);
+        abort_if(in_array($unit->status, ['sold', 'withdrawn'], true), 422, 'Unit sudah terjual/ditarik; sparepart tidak dapat dibebankan.');
+
+        if (! \Illuminate\Support\Facades\Cache::add('part-use:'.$this->ctx->id().':'.$data['idempotency_key'], 1, now()->addHour())) {
+            return back()->with('status', 'Pemakaian ini sudah tercatat.');
+        }
+        $part = \App\Models\SparePart::find($data['spare_part_id']);
+        $entry = $inv->useForUnit($part, $unit, (float) $data['qty'], $data['note'] ?? null);
+
+        return back()->with('status', 'Sparepart dipakai: '.\App\Support\Format::rupiah($entry->amount).' masuk HPP unit, stok '.$part->name.' berkurang.');
     }
 
     public function verifyMedia(Request $request, UnitMedia $media)
