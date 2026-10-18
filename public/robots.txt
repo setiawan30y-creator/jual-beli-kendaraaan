@@ -1,0 +1,10 @@
+User-agent: *
+Disallow: /akun
+Disallow: /dasbor
+Disallow: /admin
+Disallow: /media/
+Disallow: /masuk
+Disallow: /daftar
+Disallow: /api/
+
+Sitemap: /sitemap.xml

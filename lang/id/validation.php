@@ -1,0 +1,62 @@
+<?php
+
+// Pesan validasi Bahasa Indonesia (ringkas).
+return [
+    'accepted' => ':Attribute wajib disetujui.',
+    'after' => ':Attribute harus setelah :date.',
+    'after_or_equal' => ':Attribute harus sama dengan atau setelah :date.',
+    'array' => ':Attribute harus berupa daftar.',
+    'before' => ':Attribute harus sebelum :date.',
+    'before_or_equal' => ':Attribute tidak boleh melewati :date.',
+    'between' => [
+        'numeric' => ':Attribute harus antara :min dan :max.',
+        'string' => ':Attribute harus antara :min dan :max karakter.',
+        'file' => ':Attribute harus antara :min dan :max KB.',
+        'array' => ':Attribute harus berisi :min sampai :max item.',
+    ],
+    'boolean' => ':Attribute harus bernilai ya atau tidak.',
+    'confirmed' => 'Konfirmasi :attribute tidak cocok.',
+    'date' => ':Attribute bukan tanggal yang valid.',
+    'email' => ':Attribute harus berupa alamat email yang valid.',
+    'exists' => ':Attribute yang dipilih tidak valid.',
+    'file' => ':Attribute harus berupa berkas.',
+    'image' => ':Attribute harus berupa gambar.',
+    'in' => ':Attribute yang dipilih tidak valid.',
+    'integer' => ':Attribute harus berupa bilangan bulat.',
+    'max' => [
+        'numeric' => ':Attribute tidak boleh lebih dari :max.',
+        'string' => ':Attribute tidak boleh lebih dari :max karakter.',
+        'file' => ':Attribute tidak boleh lebih dari :max KB.',
+        'array' => ':Attribute tidak boleh lebih dari :max item.',
+    ],
+    'mimes' => ':Attribute harus berformat: :values.',
+    'mimetypes' => ':Attribute harus berformat: :values.',
+    'min' => [
+        'numeric' => ':Attribute minimal :min.',
+        'string' => ':Attribute minimal :min karakter.',
+        'file' => ':Attribute minimal :min KB.',
+        'array' => ':Attribute minimal berisi :min item.',
+    ],
+    'not_in' => ':Attribute yang dipilih tidak valid.',
+    'numeric' => ':Attribute harus berupa angka.',
+    'password' => [
+        'letters' => ':Attribute harus mengandung minimal satu huruf.',
+        'mixed' => ':Attribute harus mengandung huruf besar dan kecil.',
+        'numbers' => ':Attribute harus mengandung minimal satu angka.',
+        'symbols' => ':Attribute harus mengandung minimal satu simbol.',
+        'uncompromised' => ':Attribute ini pernah bocor di internet. Gunakan :attribute lain.',
+    ],
+    'regex' => 'Format :attribute tidak valid.',
+    'required' => ':Attribute wajib diisi.',
+    'string' => ':Attribute harus berupa teks.',
+    'unique' => ':Attribute sudah digunakan.',
+    'uploaded' => ':Attribute gagal diunggah.',
+    'url' => 'Format :attribute tidak valid.',
+
+    'attributes' => [
+        'email' => 'email', 'password' => 'kata sandi', 'name' => 'nama', 'phone' => 'nomor telepon',
+        'title' => 'judul', 'price' => 'harga', 'year' => 'tahun', 'description' => 'deskripsi',
+        'city_id' => 'kota', 'status' => 'status', 'reason' => 'alasan', 'file' => 'berkas', 'category' => 'kategori',
+        'odometer_km' => 'kilometer', 'starts_at' => 'jadwal', 'booking_type' => 'jenis jadwal',
+    ],
+];
